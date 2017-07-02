@@ -18,7 +18,7 @@ granted
 ### Naming conventions
 Important things to know:
 + A __network__ is a collection of devices connected together by transporters.
-+ A __device__ an be a user, a provider, a storage or a monitor. "Concretely" it
++ A __device__ can be a user, a provider, a storage or a monitor. "Concretely" it
   probably is a Minetest node. But a Minetest node can actually be multiple
   devices at the same time (or even be a transporter). Keep reading to better
   understand this aspect.
@@ -109,24 +109,25 @@ description in the API code documentation (generated thanks to
 
 + `tech_api.energy.register_transporter(name, config)` will allow a transporter
   node (i.e. a wire/cable) to register to the API through its name.
-  The first parameter is the name of the node while the former __may__ be a Lua
-  table with fields specifying parameters.
-  The only parameter that may currently be passed is `class`, to specify the
-  class (aka tier) the transporter belongs to (see the section above for more
-  details). An example usage is:
+  The first parameter is the name of the node while the former is a Lua table
+  with fields specifying parameters. An example usage is:
 
   ```lua
   -- in yourcable.lua
 
   tech_api.energy.register_transporter("yourmod:yourcable", {
-    class = 'default'
+    class = 'default',
+    callback = function(...)
+      -- the callback that fires whenever the transporter changes its connected
+      -- sides, useful to update the node visuals
+    end
   })
   ```
 
   Please note that the class parameter in the example above is not required at
   all and, unless you're writing a mod that uses multiple classes (which you
-  shouldn't), you should just skip entirely the `config` parameter. The API will
-  assume your transporter belongs to the 'default' class automatically.
+  shouldn't), you should just skip specifying it. The API will assume your
+  transporter belongs to the 'default' class automatically.
 
 + `tech_api.energy.register_device(name, config)` allows a device to be
   registered as such to the API through its name as an identifier for the
@@ -144,6 +145,7 @@ description in the API code documentation (generated thanks to
     callback = function(...)
       -- main callback from the API which allows a device to exchange the
       -- power it needs/generates/stores
+      return ...
     end
   })
   ```
