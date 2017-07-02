@@ -98,6 +98,9 @@ definitions again. A node definition is identified through the name of the node,
 in the usual Minetest fashion ("mod:name"). Note: you can use whatever name you
 want, not strictly following the Minetest nodes naming scheme, but it's
 recommended to keeps things consistent for the sake of simplicity.
+When registering a node definition, you will also have to provide the definition
+name. The name can be anything, as soon as it's different for multiple
+definitions for the same node. Use 'default' if unsure.
 When a node (that has already registered a definition) is placed, it has to call
 a specific method of the API to inform the system of its presence. A placed
 "energy-capable" node (a node that deals with this API) is uniquely identified
@@ -115,7 +118,7 @@ description in the API code documentation (generated thanks to
   ```lua
   -- in yourcable.lua
 
-  tech_api.energy.register_transporter("yourmod:yourcable", {
+  tech_api.energy.register_transporter("yourmod:yourcable", "default", {
     class = 'default',
     callback = function(...)
       -- the callback that fires whenever the transporter changes its connected
@@ -137,7 +140,7 @@ description in the API code documentation (generated thanks to
   ```lua
   -- in yourmachine.lua
 
-  tech_api.energy.register_device("yourmod:yourmachine", {
+  tech_api.energy.register_device("yourmod:yourmachine", "default", {
     class = 'default',
     type = 'user',
     max_rate = 20,
@@ -238,10 +241,11 @@ solutions.
 A device entry in the `devices` table (inside each network) will contain the
 following fields:
 
-+ `pos` which is the position in the world, used to identify the device. Since a
++ `pos` which is the position in the world, used to identify the device.
++ `node_name` which is the name the node registered its definitions to. Since a
   node, as mentioned before, may actually register as *multiple* devices, the
   field that follows is also required.
-+ `definition_id` which represents what device definition (of the possibly
++ `def_name` which represents what device definition (of the possibly
   multiple available) actually represents the device connected to this network
 + `type` (user/provider/storage/monitor)
 + `max_rate`
