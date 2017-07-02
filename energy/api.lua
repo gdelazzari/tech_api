@@ -25,6 +25,12 @@
 --    end
 --  })
 function tech_api.energy.register_transporter(node_name, def_name, config)
+  -- fall back to default class if not specified
+  if not config.class then
+    config.class = 'default'
+  end
+
+  -- register the definition
   tech_api.energy.add_definition(node_name, def_name, 'transporter', config)
 end
 
@@ -51,6 +57,12 @@ end
 --    end
 --  })
 function tech_api.energy.register_device(node_name, def_name, config)
+  -- fall back to default class if not specified
+  if not config.class then
+    config.class = 'default'
+  end
+
+  -- register the definition
   tech_api.energy.add_definition(node_name, def_name, 'device', config)
 end
 
@@ -79,7 +91,13 @@ end
 --    end
 --  })
 function tech_api.energy.on_construct(node_name, pos)
-  
+  -- update the nodestore
+  tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = {
+    node_name = node_name
+  }
+
+  -- rebuild the networks graphs
+  tech_api.energy.rediscover_networks()
 end
 
 --- Notify that a registered node has been removed.
@@ -90,7 +108,11 @@ end
 -- @function on_destruct(pos)
 -- @tparam table pos The position of the node
 function tech_api.energy.on_destruct(pos)
+  -- update the nodestore
+  tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nil
 
+  -- rebuild the networks graphs
+  tech_api.energy.rediscover_networks()
 end
 
 --- Manually ask for a callback for a device.

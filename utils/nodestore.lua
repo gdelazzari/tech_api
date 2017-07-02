@@ -23,8 +23,18 @@ tech_api.utils.nodestore.data = {}
 -- @function load
 -- @treturn boolean Whether the operation was successful or not
 function tech_api.utils.nodestore.load()
-  tech_api.utils.nodestore.data = minetest.deserialize(tech_api.modstorage:get_string('nodestore'))
-  return true
+  local nodestore_string = tech_api.modstorage:get_string('nodestore')
+  if nodestore_string then
+    tech_api.utils.nodestore.data = minetest.deserialize(nodestore_string)
+    if tech_api.utils.nodestore.data then
+      return true
+    else
+      tech_api.utils.nodestore.data = {}
+      return false
+    end
+  else
+    return false
+  end
 end
 
 --- This function saves the table to the tech_api ModStorage object.

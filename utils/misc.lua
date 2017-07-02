@@ -31,3 +31,33 @@ function tech_api.utils.misc.dehash_vector(s)
 		z = 256 * string.byte(s, 5) + string.byte(s, 6) - 32768,
 	}
 end
+
+--- Returns a list of positions connected to the one given.
+-- Used to get search positions for connected wires when discovering a network.
+-- @function get_connected_positions
+-- @tparam table pos The starting position
+-- @treturn table A Lua array (integer indexed table) with the 6 positions
+-- connected to the one given.
+function tech_api.utils.misc.get_connected_positions(pos)
+	local result = {}
+	table.insert(result, {x = pos.x + 1, y = pos.y, z = pos.z})
+	table.insert(result, {x = pos.x - 1, y = pos.y, z = pos.z})
+	table.insert(result, {x = pos.x, y = pos.y + 1, z = pos.z})
+	table.insert(result, {x = pos.x, y = pos.y - 1, z = pos.z})
+	table.insert(result, {x = pos.x, y = pos.y, z = pos.z + 1})
+	table.insert(result, {x = pos.x, y = pos.y, z = pos.z - 1})
+	return result
+end
+
+--- Checks the equality of two positions
+-- @function positions_equal
+-- @tparam table a First position to compare
+-- @tparam table b Second position to compare
+-- @treturn boolean Compare result
+function tech_api.utils.misc.positions_equal(a, b)
+	if a.x == b.x and a.y == b.y and a.z == b.z then
+		return true
+	else
+		return false
+	end
+end

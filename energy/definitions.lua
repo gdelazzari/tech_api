@@ -27,3 +27,23 @@ function tech_api.energy.add_definition(node_name, def_name, group, config)
   tech_api.energy.definitions[node_name][def_name] = config
   tech_api.energy.definitions[node_name][def_name].group = group
 end
+
+--- Checks whether or not a node type has a definition for a group.
+-- By group we mean "device" or "transporter". If the specified
+-- node name has at least one definition for that group, the function returns
+-- true.
+-- @function has_definition_for_group
+-- @tparam string node_name The name the node registered with
+-- @tparam string group The definition group you're looking for
+-- @treturn boolean True if the node has *at least* one definition of that group,
+-- otherwise false
+function tech_api.energy.has_definition_for_group(node_name, group)
+  if tech_api.energy.definitions[node_name] then
+    for def_name, config in pairs(tech_api.energy.definitions[node_name]) do
+      if config.group == group then
+        return true
+      end
+    end
+  end
+  return false
+end

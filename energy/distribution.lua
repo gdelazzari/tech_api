@@ -11,6 +11,8 @@
 -- and is in charge of moving the energy around inside a network, as the devices
 -- require.
 -- @function distribution_cycle
-function tech_api.energy.distribution_cycle()
+-- @tparam float delta_time Time since the last call - obtained from the
+-- globalstep callback
+function tech_api.energy.distribution_cycle(delta_time)
 
 end
