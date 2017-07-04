@@ -10,7 +10,8 @@
 -- This function registers a transporter definition for a specific node name
 -- @function register_transporter
 -- @tparam string node_name The name of the node the definition belongs to,
--- in the usual Minetest style "modname:nodename"
+-- in the usual Minetest style "modname:nodename". This MUST be the same name
+-- the node registered with on the Minetest API (using minetest.register_node).
 -- @tparam string def_name The name of the definition, since a node may have
 -- multiple ones
 -- @tparam table config The parameters for the definition being registered
@@ -38,7 +39,8 @@ end
 -- This function registers a device definition for a specific node name.
 -- @function register_device
 -- @tparam string node_name The name of the node the definition belongs to,
--- in the usual Minetest style "modname:nodename"
+-- in the usual Minetest style "modname:nodename". This MUST be the same name
+-- the node registered with on the Minetest API (using minetest.register_node).
 -- @tparam string def_name The name of the definition, since a node may have
 -- multiple ones
 -- @tparam table config The parameters for the definition being registered
@@ -68,14 +70,12 @@ end
 
 --- Notify that a registered node has been placed.
 -- This function must be called whenever a node you registered definitions of,
--- is placed in the world (on_construct Minetest callback). The name of the node
--- (so the system can look up its definitions) and its position are enough as
--- parameters to pass to the function. This function goes along with
--- @{tech_api.energy.on_destruct}.
--- @function on_construct(node_name, pos)
--- @tparam string node_name The name of the node (it must be the same you used
--- to register its definitions, ideally it's the same name you registered the
--- node with to Minetest)
+-- is placed in the world (on_construct Minetest callback). The position of the
+-- node is the only parameter required. The API will call minetest.get_node with
+-- the position provided to figure out the node name (allowing the system to
+-- fetch the node definitions you registered) and the direction of the node.
+-- This function goes along with @{tech_api.energy.on_destruct}.
+-- @function on_construct(pos)
 -- @tparam table pos The position of the node
 -- @usage
 --  -- in yourmachine.lua
@@ -84,17 +84,45 @@ end
 --    -- Minetest node definition here
 --
 --    on_construct = function(pos)
---      tech_api.energy.on_construct("yourmod:yourmachine", pos)
+--      tech_api.energy.on_construct(pos)
 --    end,
 --    on_destruct = function(pos)
 --      tech_api.energy.on_destruct(pos)
 --    end
 --  })
-function tech_api.energy.on_construct(node_name, pos)
-  -- update the nodestore
-  tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = {
-    node_name = node_name
+function tech_api.energy.on_construct(pos)
+  -- get the node table
+  local node = minetest.get_node(pos)
+
+  -- prepare the nodestore data table to assign
+  local nodedata = {
+    node_name = node.name,
+    facedir = node.param2
   }
+
+  -- pre-calculate the valid direction vectors for each definition to speed
+  -- up any further network discovery (only if this has at least one device
+  -- definition)
+  if tech_api.energy.has_definition_for_group(node.name, 'device') == true then
+    nodedata.definitions = {}
+    for def_name, definition in pairs(tech_api.energy.definitions[node.name]) do
+      nodedata.definitions[def_name] = {}
+      nodedata.definitions[def_name].linkable_faces = {}
+      for lf = 1, #definition.linkable_faces do
+        table.insert(
+          nodedata.definitions[def_name].linkable_faces,
+          tech_api.utils.misc.facename_to_vector(node.param2, definition.linkable_faces[lf])
+        )
+      end
+
+      -- also prepare the network_id field for each definition
+      nodedata.definitions[def_name].network_id = -1
+    end
+  end
+
+  -- assign the data we generated to the node (referencing by position) in the
+  -- nodestore
+  tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nodedata
 
   -- rebuild the networks graphs
   tech_api.energy.rediscover_networks()
@@ -103,7 +131,7 @@ end
 --- Notify that a registered node has been removed.
 -- This function must be called whenever a node you registered definitions of,
 -- is removed from the world (on_destruct Minetest callback). The position of
--- the node is the only parameter required. See @{tech_api.energy.on_construct}
+-- the node is the only parameter required. See also @{tech_api.energy.on_construct}
 -- for an usage example.
 -- @function on_destruct(pos)
 -- @tparam table pos The position of the node

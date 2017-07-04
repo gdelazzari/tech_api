@@ -11,7 +11,7 @@
 tech_api.utils.log = {}
 
 -- Local configuration parameters
-local print_to_chat = true
+local debug_mode = true
 
 --- Function to print a log string on the configured streams
 -- @function print
@@ -19,7 +19,8 @@ local print_to_chat = true
 -- @tparam string text The text to log
 function tech_api.utils.log.print(level, text)
   minetest.log(level, "[tech_api] " .. text)
-  if print_to_chat == true then
+  if debug_mode == true then
     minetest.chat_send_all("[tech_api] [" .. level .. "] " .. text)
+    print("[tech_api] [" .. level .. "] " .. text)
   end
 end

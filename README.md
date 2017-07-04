@@ -24,6 +24,16 @@ we'll all be using in our mods.~~
 A first implementation is in progress on the
 [experimental branch](https://github.com/gdelazzari/tech_api/tree/experimental).
 
+The implementation will happen in steps, progressively optimizing the code.
+This allows to first have a basic working version (simple code = less problems,
+...usually...) and then to use that as a starting base for the various
+planned optimizations.
+
+The specifications document is currently "out of sync", and will stay in this
+state until the first basic implementation allows me to figure out exactly how
+the system is going to operate. The LDoc documentation, however, will always
+reflect the code.
+
 ## Documentation
 
 The code is well documented using LDoc. First be sure to read the

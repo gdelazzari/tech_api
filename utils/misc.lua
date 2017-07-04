@@ -61,3 +61,61 @@ function tech_api.utils.misc.positions_equal(a, b)
 		return false
 	end
 end
+
+--- Vector cross product.
+-- @function vector_cross_product
+-- @tparam table a Vector A
+-- @tparam table b Vector B
+-- @treturn table Resulting vector
+function tech_api.utils.misc.vector_cross_product(a, b)
+	return {x = a.y * b.z - b.y * a.z,
+					y = a.z * b.x - b.z * a.x,
+					z = a.x * b.y - b.x * a.y}
+end
+
+--- Gets the vector pointing top.
+-- This function returns the vector that points out of the top of a node,
+-- given its facedir parameter.
+-- @function facedir_to_top_dir
+-- @tparam table facedir The facedir parameter (node's param2 field)
+-- @treturn table The vector pointing out from the top of the node
+function tech_api.utils.misc.facedir_to_top_dir(facedir)
+	return 	({[0] = {x =  0, y =  1, z =  0},
+	                {x =  0, y =  0, z =  1},
+	                {x =  0, y =  0, z = -1},
+	                {x =  1, y =  0, z =  0},
+	                {x = -1, y =  0, z =  0},
+	                {x =  0, y = -1, z =  0}})
+		[math.floor(facedir / 4)]
+end
+
+--- Convert a face name to a vector.
+-- This function converts a facedir parameter (a node's param2)
+-- and a "facename" (front/back/left/top/...) to a vector pointing out of the
+-- face specified.
+-- @function facename_to_vector
+-- @tparam table facedir The facedir parameter (param2 field from a node object)
+-- @tparam string facename The name of the face you want the returned vector to
+-- point out of.
+-- @treturn table The vector pointing out of the face specified, considering the
+-- orientation of the node
+function tech_api.utils.misc.facename_to_vector(facedir, facename)
+	local top = tech_api.utils.misc.facedir_to_top_dir(facedir)
+	local bottom = vector.multiply(top, -1)
+	local back = minetest.facedir_to_dir(facedir)
+	if facename == 'back' then
+		return back
+	elseif facename == 'front' then
+		return vector.multiply(back, -1)
+	elseif facename == 'right' then
+		return tech_api.utils.misc.vector_cross_product(top, back)
+	elseif facename == 'left' then
+		return tech_api.utils.misc.vector_cross_product(bottom, back)
+	elseif facename == 'top' then
+		return top
+	elseif facename == 'bottom' then
+		return bottom
+	else
+		return nil
+	end
+end
