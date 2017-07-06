@@ -6,38 +6,6 @@
 -- the energy system.
 -- @section public_api
 
---- Register a transporter definition.
--- This function registers a transporter definition for a specific node name
--- @function register_transporter
--- @tparam string node_name The name of the node the definition belongs to,
--- in the usual Minetest style "modname:nodename". This MUST be the same name
--- the node registered with on the Minetest API (using minetest.register_node).
--- @tparam string def_name The name of the definition, since a node may have
--- multiple ones
--- @tparam table config The parameters for the definition being registered
--- @usage
---  -- in yourcable.lua
---
---  tech_api.energy.register_transporter("yourmod:yourcable", "default", {
---    class = 'default',
---    callback = function(...)
---      -- the callback that fires whenever the transporter changes its connected
---      -- sides, useful to update the node visuals
---    end
---  })
-function tech_api.energy.register_transporter(node_name, def_name, config)
-  -- fall back to default class if not specified
-  if not config.class then
-    config.class = 'default'
-  end
-
-  -- preprocess class (i.e. translate to class id)
-  config.class = tech_api.energy.classes[config.class]
-
-  -- register the definition
-  tech_api.energy.add_definition(node_name, def_name, 'transporter', config)
-end
-
 --- Register a device definition.
 -- This function registers a device definition for a specific node name.
 -- @function register_device
@@ -75,6 +43,42 @@ function tech_api.energy.register_device(node_name, def_name, config)
 
   -- register the definition
   tech_api.energy.add_definition(node_name, def_name, 'device', config)
+end
+
+--- Register a transporter definition.
+-- This function registers a transporter definition for a specific node name.
+-- In this case you won't have to provide a name for the definition, since
+-- a node can have just one transporter definition. The definition will be
+-- internally named "transporter_default", so if you also declare device
+-- definitions for this node you must not use that same name (you'll probably
+-- never call a device definition "transporter_default", but it's just to warn
+-- you).
+-- @function register_transporter
+-- @tparam string node_name The name of the node the definition belongs to,
+-- in the usual Minetest style "modname:nodename". This MUST be the same name
+-- the node registered with on the Minetest API (using minetest.register_node).
+-- @tparam table config The parameters for the definition being registered
+-- @usage
+--  -- in yourcable.lua
+--
+--  tech_api.energy.register_transporter("yourmod:yourcable", {
+--    class = 'default',
+--    callback = function(...)
+--      -- the callback that fires whenever the transporter changes its connected
+--      -- sides, useful to update the node visuals
+--    end
+--  })
+function tech_api.energy.register_transporter(node_name, config)
+  -- fall back to default class if not specified
+  if not config.class then
+    config.class = 'default'
+  end
+
+  -- preprocess class (i.e. translate to class id)
+  config.class = tech_api.energy.classes[config.class]
+
+  -- register the definition
+  tech_api.energy.add_definition(node_name, 'transporter_default', 'transporter', config)
 end
 
 --- Notify that a registered node has been placed.

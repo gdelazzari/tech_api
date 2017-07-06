@@ -59,10 +59,9 @@ end
 -- @treturn table The definition table
 function tech_api.energy.get_transporter_definition(node_name)
   if tech_api.energy.definitions[node_name] then
-    for def_name, config in pairs(tech_api.energy.definitions[node_name]) do
-      if config.group == 'transporter' then
-        return config
-      end
+    local definition = tech_api.energy.definitions[node_name]['transporter_default']
+    if definition then
+      return definition
     end
   end
   return nil
