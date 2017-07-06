@@ -9,6 +9,7 @@
 tech_api.energy = {}
 
 -- Load the subfiles/submodules
+dofile(tech_api.modpath .. "/energy/classes.lua")
 dofile(tech_api.modpath .. "/energy/definitions.lua")
 dofile(tech_api.modpath .. "/energy/networks.lua")
 dofile(tech_api.modpath .. "/energy/distribution.lua")

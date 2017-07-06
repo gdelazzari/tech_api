@@ -82,17 +82,20 @@ function tech_api.energy.connect_device(pos, transporter_pos)
     -- if there's something there
     local search_pos_nodestore = tech_api.utils.nodestore.data[search_pos_hash]
     if search_pos_nodestore then
-      -- and the node is a compatible transporter (same class, valid network id)
-      -- TODO check class
+      -- and the node is a transporter (with a valid network id)
       if search_pos_nodestore.is_transporter == true and search_pos_nodestore.network_id ~= -1 then
-        -- save the network id we MAY connect to
+        -- save the network id we *may* connect to
         local network_id = search_pos_nodestore.network_id
 
         -- iterate through each definition for the device
         for def_name, definition in pairs(pos_nodestore.definitions) do
           -- checking for a non-connected one
           if definition.network_id == -1 then
-            -- and if the definition is compatible (i.e. the face can connect)
+            -- also bring the full definition local
+            local full_definition = tech_api.energy.definitions[pos_nodestore.node_name][def_name]
+
+            -- and if the definition is compatible (i.e. the face can connect
+            -- and the class(es) is(/are) compatible)
             local can_connect = false
             for lf = 1, #definition.linkable_faces do
               if tech_api.utils.misc.positions_equal(
@@ -103,10 +106,15 @@ function tech_api.energy.connect_device(pos, transporter_pos)
                 break
               end
             end
+            if can_connect == true then
+              local transporter_def = tech_api.energy.get_transporter_definition(search_pos_nodestore.node_name)
+              if tech_api.energy.class_list_has(full_definition.class, transporter_def.class) == false then
+                can_connect = false
+              end
+            end
 
             if can_connect == true then
               -- we can add the device
-              local full_definition = tech_api.energy.definitions[pos_nodestore.node_name][def_name]
               tech_api.energy.add_device_to_network(network_id, {
                 pos = pos,
                 node_name = pos_nodestore.node_name,
@@ -157,8 +165,8 @@ function tech_api.energy.discover_network(pos, current_network_id)
   local pos_hash = tech_api.utils.misc.hash_vector(pos)
   tech_api.utils.nodestore.data[pos_hash].network_id = network_id
 
-  -- also flag it as visited
-  tech_api.utils.nodestore.data[pos_hash].visited = true
+  -- declare a local variable with our class id for faster access
+  local own_class = tech_api.utils.nodestore.data[pos_hash].class
 
   -- search for connected devices AND go recursive on connected transporters
   local connected_positions = tech_api.utils.misc.get_connected_positions(pos)
@@ -175,15 +183,16 @@ function tech_api.energy.discover_network(pos, current_network_id)
     if search_pos_nodestore then
       -- behave differently if the node is a transporter or not
       if search_pos_nodestore.is_transporter == true then
-        -- this is a transporter, do recursive search if still not visited
-
-        -- TODO check transporter class is the same!
-        if search_pos_nodestore.visited == false then
-          tech_api.energy.discover_network(search_pos, network_id)
+        -- this is a transporter, do recursive search if still not visited and
+        -- it's of the same class
+        if search_pos_nodestore.network_id == -1 then
+          if search_pos_nodestore.class == own_class then
+            tech_api.energy.discover_network(search_pos, network_id)
+          end
         end
-
       else
-        -- this is a device, connect it to the network if possible
+        -- this is a device, connect it to the network if possible (this
+        -- will do all the necessary checks)
         tech_api.energy.connect_device(search_pos, pos)
       end
     end
@@ -206,9 +215,11 @@ function tech_api.energy.rediscover_networks()
     -- get the first unvisited transporter node we find
     local unvisited_pos = nil
     for pos_hash, content in pairs(tech_api.utils.nodestore.data) do
-      if tech_api.utils.nodestore.data[pos_hash].visited == false then
-        unvisited_pos = tech_api.utils.misc.dehash_vector(pos_hash)
-        break
+      if tech_api.utils.nodestore.data[pos_hash].is_transporter == true then
+        if tech_api.utils.nodestore.data[pos_hash].network_id == -1 then
+          unvisited_pos = tech_api.utils.misc.dehash_vector(pos_hash)
+          break
+        end
       end
     end
 
@@ -226,10 +237,8 @@ function tech_api.energy.rediscover_networks()
 end
 
 --- Reset the traversal algorithm flags in the nodestore.
--- This function sets the 'visited' field back to false for every transporter
--- node in the nodestore. Only nodes that have a transporter definition are
--- affected, device-only nodes are skipped. It also resets the network id field
--- to -1 (no network) - again only for transporter nodes.
+-- This function sets the network id field back to -1 (no network) for each
+-- transporter node.
 -- Instead, if a device node is found, it will reset the network id each
 -- each definition is connected to.
 -- Last but not least, it adds a field 'is_transporter' that
@@ -241,7 +250,6 @@ end
 function tech_api.energy.reset_discovery_flags()
   for pos_hash, content in pairs(tech_api.utils.nodestore.data) do
     if tech_api.energy.has_definition_for_group(tech_api.utils.nodestore.data[pos_hash].node_name, 'transporter') == true then
-      tech_api.utils.nodestore.data[pos_hash].visited = false
       tech_api.utils.nodestore.data[pos_hash].is_transporter = true
       tech_api.utils.nodestore.data[pos_hash].network_id = -1
     else

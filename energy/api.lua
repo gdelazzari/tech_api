@@ -31,6 +31,9 @@ function tech_api.energy.register_transporter(node_name, def_name, config)
     config.class = 'default'
   end
 
+  -- preprocess class (i.e. translate to class id)
+  config.class = tech_api.energy.classes[config.class]
+
   -- register the definition
   tech_api.energy.add_definition(node_name, def_name, 'transporter', config)
 end
@@ -48,7 +51,7 @@ end
 --  -- in yourmachine.lua
 --
 --  tech_api.energy.register_device("yourmod:yourmachine", "default", {
---    class = 'default',
+--    class = {'default'},
 --    type = 'user',
 --    max_rate = 20,
 --    linkable_faces = {'rear', 'top', 'left', 'right', 'bottom'},
@@ -61,8 +64,14 @@ end
 function tech_api.energy.register_device(node_name, def_name, config)
   -- fall back to default class if not specified
   if not config.class then
-    config.class = 'default'
+    config.class = {'default'}
   end
+  if #config.class == 0 then
+    table.insert(config.class, 'default')
+  end
+
+  -- preprocess classes (i.e. translate to class ids)
+  config.class = tech_api.energy.translate_class_aliases(config.class)
 
   -- register the definition
   tech_api.energy.add_definition(node_name, def_name, 'device', config)
@@ -120,6 +129,14 @@ function tech_api.energy.on_construct(pos)
     end
   end
 
+  -- if this node has a transporter definition, also keep the transporter class
+  -- in the nodestore so the network discovery can be performed faster without
+  -- accessing multiple tables
+  local transporter_def = tech_api.energy.get_transporter_definition(node.name)
+  if transporter_def then
+    nodedata.class = transporter_def.class
+  end
+
   -- assign the data we generated to the node (referencing by position) in the
   -- nodestore
   tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nodedata
@@ -156,4 +173,19 @@ end
 -- @tparam string def_name The name of the device definition
 function tech_api.energy.request_callback(pos, def_name)
 
+end
+
+--- Register a new energy class.
+-- This function adds a new class alias that can be used when registering
+-- devices or transporter definitions. Please note that, unless you're working
+-- with the Technic mod, you shouldn't use this function at all (nor specify)
+-- classes for your definitions.
+-- @function register_class
+-- @tparam string alias The class alias
+-- @tparam number id The class id. If you're registering a new class you must
+-- ensure to use an id that is different from the ids other mods are using. If
+-- you choose a numeric id that is equal to another mod registered id, you'll
+-- end up with devices and transporters connecting together while they shouldn't.
+function tech_api.energy.register_class(alias, id)
+  tech_api.energy.add_class(alias, id)
 end

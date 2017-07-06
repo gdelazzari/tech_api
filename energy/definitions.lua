@@ -47,3 +47,23 @@ function tech_api.energy.has_definition_for_group(node_name, group)
   end
   return false
 end
+
+--- Returns the transporter definition for a node name.
+-- This function returns the *only* transporter definition for the node name
+-- provided (if it has any, otherwise it returns nil). I wrote *only* because
+-- a node must not have more than one transporter definition (it may have none,
+-- but no more than 1) otherwise something went wrong.
+-- @function get_transporter_definition
+-- @tparam string node_name The node name you want to get the transporter
+-- definition
+-- @treturn table The definition table
+function tech_api.energy.get_transporter_definition(node_name)
+  if tech_api.energy.definitions[node_name] then
+    for def_name, config in pairs(tech_api.energy.definitions[node_name]) do
+      if config.group == 'transporter' then
+        return config
+      end
+    end
+  end
+  return nil
+end
