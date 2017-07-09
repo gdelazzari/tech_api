@@ -57,7 +57,7 @@ end
 -- device to connect to. It may be nil (or unspecified). In that case the
 -- function will search around the device and connect all the definitions that
 -- apply to the wire position (linkable_faces config field, see
--- @{tech_api.register_device}).
+-- @{tech_api.energy.register_device}).
 function tech_api.energy.connect_device(pos, transporter_pos)
   -- here we will put the positions we'll try to search for a transporter
   local search_positions
@@ -183,17 +183,18 @@ function tech_api.energy.discover_network(stack, pos, current_network_id)
 
     -- if there's something in the current serach position...
     if search_pos_nodestore then
-      -- behave differently if the node is a transporter or not
+      -- behave differently if the node is a transporter or a device
       if search_pos_nodestore.is_transporter == true then
-        -- this is a transporter, add to the stack if still not visited and
-        -- of the same class
+        -- this is a (also) transporter, add to the stack if still not visited
+        -- and of the same class
         if search_pos_nodestore.network_id == -1 then
           if search_pos_nodestore.class == own_class then
             table.insert(stack, {pos = search_pos, network_id = network_id})
           end
         end
-      else
-        -- this is a device, connect it to the network if possible (this
+      end
+      if search_pos_nodestore.is_device == true then
+        -- this is (also) a device, connect it to the network if possible (this
         -- will do all the necessary checks)
         tech_api.energy.connect_device(search_pos, pos)
       end
@@ -258,7 +259,8 @@ end
 -- each definition is connected to.
 -- Last but not least, it adds a field 'is_transporter' that
 -- indicates whether or not the node has at least a transporter definition for
--- its node name. This allows for faster execution of the network discovery
+-- its node name and 'is_device' that indicates if the node as at least one
+-- device definition. This allows for faster execution of the network discovery
 -- recursive function, because it doesn't need anymore to check the definitions
 -- table (which is slower) to figure out this aspect.
 -- @function reset_discovery_flags
@@ -269,9 +271,15 @@ function tech_api.energy.reset_discovery_flags()
       tech_api.utils.nodestore.data[pos_hash].network_id = -1
     else
       tech_api.utils.nodestore.data[pos_hash].is_transporter = false
+    end
+
+    if tech_api.energy.has_definition_for_group(tech_api.utils.nodestore.data[pos_hash].node_name, 'device') == true then
+      tech_api.utils.nodestore.data[pos_hash].is_device = true
       for def_name, _ in pairs(tech_api.utils.nodestore.data[pos_hash].definitions) do
         tech_api.utils.nodestore.data[pos_hash].definitions[def_name].network_id = -1
       end
+    else
+      tech_api.utils.nodestore.data[pos_hash].is_device = false
     end
   end
 end

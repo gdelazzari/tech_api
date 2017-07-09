@@ -119,17 +119,19 @@ function tech_api.energy.on_construct(pos)
   if tech_api.energy.has_definition_for_group(node.name, 'device') == true then
     nodedata.definitions = {}
     for def_name, definition in pairs(tech_api.energy.definitions[node.name]) do
-      nodedata.definitions[def_name] = {}
-      nodedata.definitions[def_name].linkable_faces = {}
-      for lf = 1, #definition.linkable_faces do
-        table.insert(
-          nodedata.definitions[def_name].linkable_faces,
-          tech_api.utils.misc.facename_to_vector(node.param2, definition.linkable_faces[lf])
-        )
-      end
+      if definition.group == 'device' then -- only if a device definition
+        nodedata.definitions[def_name] = {}
+        nodedata.definitions[def_name].linkable_faces = {}
+        for lf = 1, #definition.linkable_faces do
+          table.insert(
+            nodedata.definitions[def_name].linkable_faces,
+            tech_api.utils.misc.facename_to_vector(node.param2, definition.linkable_faces[lf])
+          )
+        end
 
-      -- also prepare the network_id field for each definition
-      nodedata.definitions[def_name].network_id = -1
+        -- also prepare the network_id field for each definition
+        nodedata.definitions[def_name].network_id = -1
+      end
     end
   end
 
