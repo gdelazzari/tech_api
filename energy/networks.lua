@@ -145,9 +145,11 @@ function tech_api.energy.connect_device(pos, transporter_pos)
   end
 end
 
---- Recursive function to discover a network.
+--- Function to discover a network node by node.
 -- The function is called when rebuilding the networks graph from scratch, and
--- will start from a given position to discover an entire network. The function
+-- will start from a given position to discover an entire network. It will be
+-- called on a starting position, and it will add to the discovery stack the
+-- transporter nodes it finds attached and that must be explored. The function
 -- will also add the devices it finds to the network id it's traversing through.
 -- @function discover_network
 -- @tparam table pos The starting position
@@ -155,7 +157,7 @@ end
 -- If you're calling this function to rebuild the network graph, you'll probably
 -- have this value equal to -1 for the first call, since you're starting the
 -- discovery from a transporter that doesn't belong to any network yet.
-function tech_api.energy.discover_network(pos, current_network_id)
+function tech_api.energy.discover_network(stack, pos, current_network_id)
   -- set the network id for the current transporter node
   local network_id = current_network_id
   if network_id == -1 then
@@ -183,11 +185,11 @@ function tech_api.energy.discover_network(pos, current_network_id)
     if search_pos_nodestore then
       -- behave differently if the node is a transporter or not
       if search_pos_nodestore.is_transporter == true then
-        -- this is a transporter, do recursive search if still not visited and
-        -- it's of the same class
+        -- this is a transporter, add to the stack if still not visited and
+        -- of the same class
         if search_pos_nodestore.network_id == -1 then
           if search_pos_nodestore.class == own_class then
-            tech_api.energy.discover_network(search_pos, network_id)
+            table.insert(stack, {pos = search_pos, network_id = network_id})
           end
         end
       else
@@ -228,8 +230,21 @@ function tech_api.energy.rediscover_networks()
       break
     end
 
-    -- otherwise, start a recursive discovery from this node
-    tech_api.energy.discover_network(unvisited_pos, -1)
+    -- otherwise, start a discovery from this node (which will result in a new
+    -- separate network)
+
+    -- discovery stack
+    local discovery_stack = {}
+    table.insert(discovery_stack, {pos = unvisited_pos, network_id = -1})
+
+    while #discovery_stack > 0 do
+      -- pop an element
+      local element = discovery_stack[#discovery_stack]
+      table.remove(discovery_stack)
+
+      -- search through this
+      tech_api.energy.discover_network(discovery_stack, element.pos, element.network_id)
+    end
   end
 
   -- NOTE only for debug, will be removed
