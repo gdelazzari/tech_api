@@ -34,6 +34,27 @@ state until the first basic implementation allows me to figure out exactly how
 the system is going to operate. The LDoc documentation, however, will always
 reflect the code.
 
+## Current state (TODO list)
++ [x] API skeleton and basic structure
++ [x] Documentation setup (LDoc)
++ [x] Definitions management
++ [x] Nodestore module
++ [x] Base API functions (on_construct/destruct, etc...)
++ [x] Network traversal/discovery algorithm
++ [x] Manage energy classes
++ [x] Manage linkable faces
++ [x] Manage multiple definitions for a node
++ [x] Manage a node being both a device and a transporter
++ [x] Energy distribution algorithm
+  + [x] User devices
+  + [x] Provider devices
+  + [x] Storage devices (incomplete, missing possibility of letting them charge/discharge items)
+  + [ ] Monitor devices
++ [ ] Clean up code
++ [ ] Network management optimizations (when adding/removing devices/transporters)
++ [ ] Nodestore automatic backup every *x* time
++ [ ] Better way of storing the nodestore (modstorage fails for a big one)
+
 ## Documentation
 
 The code is well documented using LDoc. First be sure to read the
