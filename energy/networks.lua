@@ -126,8 +126,7 @@ function tech_api.energy.connect_device(pos, transporter_pos)
                 -- maybe randomize this a bit to avoid tons of callbacks at the same
                 -- time after networks rediscovery?
                 callback_countdown = 1,
-                content = 0,
-                capacity = 0
+                capacity = full_definition.capacity
               })
 
               -- also flag this definition connected in the nodestore

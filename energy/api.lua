@@ -129,6 +129,11 @@ function tech_api.energy.on_construct(pos)
           )
         end
 
+        -- if this device is a storage, let's prepare the 'content' field
+        if definition.type == 'storage' then
+          nodedata.definitions[def_name].content = 0
+        end
+        
         -- also prepare the network_id field for each definition
         nodedata.definitions[def_name].network_id = -1
       end
