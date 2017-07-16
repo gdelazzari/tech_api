@@ -40,7 +40,7 @@ end
 function tech_api.energy.add_device_to_network(id, device)
   -- no checks on the validity of the id, so if something goes wrong it throws
   -- an error and we'll know that
-  tech_api.energy.networks[id].devices[device.pos] = device
+  tech_api.energy.networks[id].devices[tech_api.utils.misc.hash_vector(device.pos)] = device
 end
 
 --- Connect a device to nearby networks.
@@ -126,6 +126,7 @@ function tech_api.energy.connect_device(pos, transporter_pos)
                 -- maybe randomize this a bit to avoid tons of callbacks at the same
                 -- time after networks rediscovery?
                 callback_countdown = 1,
+                dtime = 0.0,
                 capacity = full_definition.capacity
               })
 

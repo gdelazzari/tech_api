@@ -133,7 +133,7 @@ function tech_api.energy.on_construct(pos)
         if definition.type == 'storage' then
           nodedata.definitions[def_name].content = 0
         end
-        
+
         -- also prepare the network_id field for each definition
         nodedata.definitions[def_name].network_id = -1
       end
@@ -183,7 +183,15 @@ end
 -- @tparam table pos The position of the node
 -- @tparam string def_name The name of the device definition
 function tech_api.energy.request_callback(pos, def_name)
+  -- TODO do checks (or maybe not?)
 
+  local hashed_pos = tech_api.utils.misc.hash_vector(pos)
+
+  -- obtain the device definition network id
+  local network_id = tech_api.utils.nodestore.data[hashed_pos].definitions[def_name].network_id
+  
+  -- set the callback_countdown parameter in the network tree
+  tech_api.energy.networks[network_id].devices[hashed_pos].callback_countdown = 1
 end
 
 --- Register a new energy class.
