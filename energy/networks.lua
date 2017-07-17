@@ -121,13 +121,14 @@ function tech_api.energy.connect_device(pos, transporter_pos)
                 def_name = def_name,
                 type = full_definition.type,
                 max_rate = full_definition.max_rate,
+                current_request = 0, -- only for users
                 current_rate = 0,
                 callback = full_definition.callback,
                 -- maybe randomize this a bit to avoid tons of callbacks at the same
                 -- time after networks rediscovery?
                 callback_countdown = 1,
                 dtime = 0.0,
-                capacity = full_definition.capacity
+                capacity = full_definition.capacity -- only for storages
               })
 
               -- also flag this definition connected in the nodestore

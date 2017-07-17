@@ -7,7 +7,7 @@
 -- @section distribution
 
 tech_api.energy.timer = 0.0
-tech_api.energy.time_unit = 0.25
+tech_api.energy.time_unit = 0.20
 
 --- Energy distribution cycle.
 -- This function is called internally every "time unit" of the energy system
@@ -42,21 +42,11 @@ function tech_api.energy.distribution_cycle(delta_time)
         end
       end
 
-      -- pre-calculate energy request, also managing user callbacks
+      -- pre-calculate energy request
       local request = 0
       for hashed_pos, device in pairs(network.devices) do
         if device.type == 'user' then
-          device.callback_countdown = device.callback_countdown - 1
-          if device.callback_countdown == 0 then
-            -- tell the user that its max rate is available, even if it may not
-            -- be true (callback(pos, dtime, -> device.max_rate <-))
-            local pos = tech_api.utils.misc.dehash_vector(hashed_pos)
-            local new_rate, next_callback = device.callback(pos, device.dtime, device.max_rate)
-            device.dtime = 0.0
-            device.current_rate = new_rate
-            device.callback_countdown = next_callback
-          end
-          request = request + device.current_rate
+          request = request + device.current_request
         elseif device.type == 'storage' then
           -- get the device nodestore data (since the content of the storage is here)
           local nd_dev = tech_api.utils.nodestore.data[hashed_pos]
@@ -86,7 +76,7 @@ function tech_api.energy.distribution_cycle(delta_time)
         end
       end
 
-      -- if we don't have enough energy available, try to fecth some from the
+      -- if we don't have enough energy available, try to fetch some from the
       -- storage devices in the network
       if request > available then
         for hashed_pos, device in pairs(network.devices) do
@@ -96,7 +86,7 @@ function tech_api.energy.distribution_cycle(delta_time)
             -- get the device connected definition table
             local nd_def = nd_dev.definitions[device.def_name]
             -- update storage content
-            local ask_from_storage = math.min(math.min((request - available), device.max_rate), nd_def.content)
+            local ask_from_storage = math.min((request - available), device.max_rate, nd_def.content)
             nd_def.content = nd_def.content - ask_from_storage
             available = available + ask_from_storage
             -- also keep track that we asked the storage that amount in the
@@ -109,16 +99,20 @@ function tech_api.energy.distribution_cycle(delta_time)
       -- manage users
       for hashed_pos, device in pairs(network.devices) do
         if device.type == 'user' then
-          -- check if we have enough power for the device
-          if available < device.current_rate then
-            -- if not, fire another callback with the available power to let the
-            -- device adjust its rate
+          -- manage the callback for the user
+          local can_consume = math.min(device.current_request, device.max_rate, available)
+          -- fire the callback either if the countdown is 0 or if we can't supply
+          -- what the device is trying to consume, to notify it of the fact
+          device.callback_countdown = device.callback_countdown - 1
+          if device.callback_countdown == 0 or can_consume < device.current_rate then
             local pos = tech_api.utils.misc.dehash_vector(hashed_pos)
-            local new_rate, next_callback = device.callback(pos, device.dtime, math.min(available, device.max_rate))
+            local new_request, new_rate, next_callback = device.callback(pos, device.dtime, can_consume)
             device.dtime = 0.0
+            device.current_request = new_request
             device.current_rate = new_rate
             device.callback_countdown = next_callback
           end
+
           -- then decrement the energy available
           available = available - device.current_rate
         end
