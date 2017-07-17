@@ -71,7 +71,6 @@ function tech_api.energy.distribution_cycle(delta_time)
             device.current_rate = new_rate
             device.callback_countdown = next_callback
           end
-          request = request - device.current_rate
           available = available + device.current_rate
         end
       end
