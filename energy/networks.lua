@@ -67,6 +67,8 @@ function tech_api.energy.connect_device(pos, transporter_pos)
   else
     -- otherwise get the list of connected positions
     search_positions = tech_api.utils.misc.get_connected_positions(pos)
+    -- also search "on ourselves", in case we also are a transporter
+    table.insert(search_positions, pos)
   end
 
   -- bring local our nodestore data
@@ -97,19 +99,25 @@ function tech_api.energy.connect_device(pos, transporter_pos)
             -- and if the definition is compatible (i.e. the face can connect
             -- and the class(es) is(/are) compatible)
             local can_connect = false
-            for lf = 1, #definition.linkable_faces do
-              if tech_api.utils.misc.positions_equal(
-                search_pos,
-                vector.add(pos, definition.linkable_faces[lf])
-              ) == true then
-                can_connect = true
-                break
+            if tech_api.utils.misc.positions_equal(search_pos, pos) then
+              -- if we are "connecting to ourselves", always allow that and skip
+              -- the linkable_faces check and stuff
+              can_connect = true
+            else
+              for lf = 1, #definition.linkable_faces do
+                if tech_api.utils.misc.positions_equal(
+                  search_pos,
+                  vector.add(pos, definition.linkable_faces[lf])
+                ) == true then
+                  can_connect = true
+                  break
+                end
               end
-            end
-            if can_connect == true then
-              local transporter_def = tech_api.energy.get_transporter_definition(search_pos_nodestore.node_name)
-              if tech_api.energy.class_list_has(full_definition.class, transporter_def.class) == false then
-                can_connect = false
+              if can_connect == true then
+                local transporter_def = tech_api.energy.get_transporter_definition(search_pos_nodestore.node_name)
+                if tech_api.energy.class_list_has(full_definition.class, transporter_def.class) == false then
+                  can_connect = false
+                end
               end
             end
 
