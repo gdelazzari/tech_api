@@ -71,13 +71,14 @@ function tech_api.energy.distribution_cycle(delta_time)
             device.current_rate = new_rate
             device.callback_countdown = next_callback
           end
+          request = request - device.current_rate
           available = available + device.current_rate
         end
       end
 
       -- if we don't have enough energy available, try to fetch some from the
-      -- storage devices in the network
-      if request > available then
+      -- storage devices in the network (i.e. if there's still some request left)
+      if request > 0 then
         for hashed_pos, device in pairs(network.devices) do
           if device.type == 'storage' then
             -- get the device nodestore data (since the content of the storage is here)
