@@ -287,14 +287,18 @@ end
 
 --- Get the connected network ids.
 -- This function, given a node position. searches for connected transporter
--- nodes and returns the list of their network ids, without duplicates (in the
+-- nodes and returns the list of their network ids. If 'duplicates' is false,
+-- the list is returned without duplicates (which appear, for instance, in the
 -- case of two connected transporters with the same network id). This is useful
 -- when dynamically connecting a transporter node to figure out what network it
 -- will belong to (or if we need to merge two networks together).
+-- Setting 'duplicates' to true is, instead, useful when you need to count the
+-- number of connected transporter nodes (no matter their ids).
 -- @function search_connected_networks
 -- @tparam table pos The position to search around
+-- @tparam boolean duplicates Whether to include duplicate ids or not
 -- @treturn array The list of connected network ids
-function tech_api.energy.search_connected_networks(pos)
+function tech_api.energy.search_connected_networks(pos, duplicates)
   local result = {}
 
   -- nested function to search for a network id already in the result list or not
@@ -317,10 +321,41 @@ function tech_api.energy.search_connected_networks(pos)
     if nd then
       -- check if it's a transporter
       if nd.is_transporter == true then
-        tech_api.utils.log.print('verbose', "found connected transporter")
         -- and if it is, add this network id to the result list (if not already there)
-        if id_in_result(nd.network_id) == false then
+        -- also accounting for the duplicates parameter
+        if id_in_result(nd.network_id) == false or duplicates == true then
           table.insert(result, nd.network_id)
+        end
+      end
+    end
+  end
+
+  return result
+end
+
+function tech_api.energy.search_connected_devices_definitions(pos, network_id)
+  -- place the resulting list here
+  local result = {}
+
+  -- get connected positions
+  local connected = tech_api.utils.misc.get_connected_positions(pos)
+
+  -- for each connected position
+  for i = 1, #connected do
+    -- search if there's a node there
+    local nd = tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(connected[i])]
+    if nd then
+      -- check if it's a device
+      if nd.is_device == true then
+        -- and if it is, iterate through all the definitions and add the ones
+        -- connected to the specified network id to the result list
+        for def_name, definition in pairs(nd.definitions) do
+          if definition.network_id == network_id then
+            table.insert(result, {
+              pos = connected[i],
+              def_name = def_name
+            })
+          end
         end
       end
     end
@@ -332,9 +367,9 @@ end
 -- debug (temporary function, will be removed)
 function tech_api.energy.log_networks()
   tech_api.utils.log.print('info', "------------------------------------------")
-  for id = 1, #tech_api.energy.networks do
+  for id, network in pairs(tech_api.energy.networks) do
     local devices_count = 0
-    for pos, device in pairs(tech_api.energy.networks[id].devices) do
+    for pos, device in pairs(network.devices) do
       devices_count = devices_count + 1
     end
     tech_api.utils.log.print('info', "Network #" .. id .. " has " .. devices_count .. " devices")

@@ -164,7 +164,7 @@ function tech_api.energy.on_construct(pos)
   -- if this node is a transporter, search for connected networks and behave
   -- according to the number of them
   if is_transporter then
-    local connected_networks = tech_api.energy.search_connected_networks(pos)
+    local connected_networks = tech_api.energy.search_connected_networks(pos, false)
     if #connected_networks == 0 then
       -- we need to create a new network with this node as the entry point
       local network_id = tech_api.energy.create_network(pos)
@@ -204,11 +204,79 @@ end
 -- @function on_destruct(pos)
 -- @tparam table pos The position of the node
 function tech_api.energy.on_destruct(pos)
-  -- update the nodestore
+  -- fetch some data about the node that was removed
+  local nd_def = tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)]
+  local is_transporter = tech_api.energy.has_definition_for_group(nd_def.node_name, 'transporter')
+  local is_device = tech_api.energy.has_definition_for_group(nd_def.node_name, 'device')
+
+  -- if this node has device definitions, then remove the devices from the
+  -- network graph
+  if is_device then
+    -- get the hashed position (used as index in the network graph)
+    local hashed_pos = tech_api.utils.misc.hash_vector(pos)
+    -- iterate through all the definitions
+    for _, definition in pairs(nd_def.definitions) do
+      -- get the network id this definition is connected to
+      local network_id = definition.network_id
+      -- if this definition is connected to a network
+      if network_id ~= -1 then
+        -- remove the device from that network
+        tech_api.energy.networks[network_id].devices[hashed_pos] = nil
+      end
+    end
+  end
+
+  -- if this node is (also) a transporter
+  if is_transporter then
+    -- keep track of the affected network id
+    local network_id = nd_def.network_id
+    -- and the devices we need to unlink
+    local to_unlink = {}
+    -- get the number of connected transporters
+    local connected_n = #tech_api.energy.search_connected_networks(pos, true)
+
+    -- the behave differently based on the number of connected transporters
+    if connected_n == 0 then
+      -- if no other connected transporters are found (thus this is the only
+      -- transporter node left in the network) then unlink all the devices in
+      -- the network and then delete the network completely
+      to_unlink = tech_api.energy.networks[network_id].devices
+      tech_api.energy.networks[network_id] = nil
+    elseif connected_n == 1 then
+      -- if just one transporter node is found, then remove all the connected
+      -- devices definitions from the network
+      to_unlink = tech_api.energy.search_connected_devices_definitions(pos, network_id)
+    elseif connected_n >= 2 then
+      -- if we are connected to more than one transporter node, we'll need to do
+      -- a complete network traversal since this means that the network is
+      -- probably going to be splitted in two parts, but first we need to remove
+      -- the node from the nodestore so the traversal algorithm knows we're no
+      -- more here
+      tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nil
+      -- then launch the traversal
+      tech_api.energy.rediscover_networks()
+    end
+
+    -- finally process our 'to_unlink' list and remove all the devices definitions
+    -- from the network with the saved id, and also flag the definitions in the
+    -- nodestore with the network_id "-1" (not connected)
+    for _, device in pairs(to_unlink) do
+      -- get the hashed position
+      local hashed_pos = tech_api.utils.misc.hash_vector(device.pos)
+      -- if the network id still exists, remove the device from the network tree
+      if tech_api.energy.networks[network_id] then
+        tech_api.energy.networks[network_id].devices[hashed_pos] = nil
+      end
+      -- update the nodestore and flag the devices with the network_id "-1"
+      tech_api.utils.nodestore.data[hashed_pos].definitions[device.def_name].network_id = -1
+    end
+  end
+
+  -- ensure this node is no more in the nodestore (just one of the conditions
+  -- above will remove it, so let's fix that here)
   tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nil
 
-  -- rebuild the networks graphs
-  tech_api.energy.rediscover_networks()
+  tech_api.energy.log_networks()
 end
 
 --- Manually ask for a callback for a device.
