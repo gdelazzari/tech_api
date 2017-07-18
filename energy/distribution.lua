@@ -42,6 +42,10 @@ function tech_api.energy.distribution_cycle(delta_time)
         end
       end
 
+      -- prepare a table to hold some network information that will be passed
+      -- to any monitor device requiring this
+      local network_info = {}
+
       -- pre-calculate energy request
       local request = 0
       for hashed_pos, device in pairs(network.devices) do
@@ -58,6 +62,9 @@ function tech_api.energy.distribution_cycle(delta_time)
           request = request + math.min(device.max_rate, (device.capacity - nd_def.content))
         end
       end
+
+      -- save the network request in the network_info table
+      network_info.request = request
 
       -- manage provider callbacks and compute available energy
       local available = 0
@@ -76,6 +83,9 @@ function tech_api.energy.distribution_cycle(delta_time)
         end
       end
 
+      -- save the provider generated power in the network_info table
+      network_info.provider_available = available
+
       -- if we don't have enough energy available, try to fetch some from the
       -- storage devices in the network (i.e. if there's still some request left)
       if request > 0 then
@@ -86,15 +96,22 @@ function tech_api.energy.distribution_cycle(delta_time)
             -- get the device connected definition table
             local nd_def = nd_dev.definitions[device.def_name]
             -- update storage content
-            local ask_from_storage = math.min((request - available), device.max_rate, nd_def.content)
+            local ask_from_storage = math.min(request, device.max_rate, nd_def.content)
             nd_def.content = nd_def.content - ask_from_storage
             available = available + ask_from_storage
+            request = request - ask_from_storage
             -- also keep track that we asked the storage that amount in the
             -- storage_rates table we prepared before
             storage_rates[hashed_pos][device.def_name] = storage_rates[hashed_pos][device.def_name] - ask_from_storage
           end
         end
       end
+
+      -- save the total available power in the network_info table
+      network_info.total_available = available
+
+      -- start computing the storage rates in the network_info table
+      network_info.storages_rate = -(available - network_info.provider_available)
 
       -- manage users
       for hashed_pos, device in pairs(network.devices) do
@@ -118,7 +135,22 @@ function tech_api.energy.distribution_cycle(delta_time)
         end
       end
 
+      -- store the power usage in the network_info table
+      network_info.usage = network_info.total_available - available
+
+      -- prepare a variable to keep track of how much energy we have put into
+      -- storages
+      local previous_available = available
+
       -- now 'available' contains the power left that we can put into storages
+
+      -- before cycling through the storages to put power in them, let's prepare
+      -- a couple of variables to keep track of the total network capacity and
+      -- stored energy (for monitor devices)
+      local total_capacity = 0
+      local total_content = 0
+
+      -- now cycle through the storages
       for hashed_pos, device in pairs(network.devices) do
         if device.type == 'storage' then
           -- get the device nodestore data (since the content of the storage is here)
@@ -126,12 +158,15 @@ function tech_api.energy.distribution_cycle(delta_time)
           -- get the device connected definition table
           local nd_def = nd_dev.definitions[device.def_name]
           -- update storage content
-          local put_in_storage = math.min(math.min(available, device.max_rate), (device.capacity - nd_def.content))
+          local put_in_storage = math.min(available, device.max_rate, (device.capacity - nd_def.content))
           nd_def.content = nd_def.content + put_in_storage
           available = available - put_in_storage
           -- also keep track that we put in the storage that amount in the
           -- storage_rates table we prepared before
           storage_rates[hashed_pos][device.def_name] = storage_rates[hashed_pos][device.def_name] + put_in_storage
+          -- and keep track of the total capacity/content
+          total_capacity = total_capacity + device.capacity
+          total_content = total_content + nd_def.content
 
           -- handle callbacks (for storages is only used to report content and
           -- capacity)
@@ -149,6 +184,25 @@ function tech_api.energy.distribution_cycle(delta_time)
             -- change the content as the device asked (useful for batteries that
             -- can charge/discharge items)
             nd_def.content = nd_def.content + content_change
+          end
+        end
+      end
+
+      -- update the storage rates in the network_info table
+      network_info.storages_rate = network_info.storages_rate + (previous_available - available)
+      -- and also the total capacity/content
+      network_info.total_capacity = total_capacity
+      network_info.total_content = total_content
+
+      -- now handle all the power monitor devices passing them the network_info table
+      for hashed_pos, device in pairs(network.devices) do
+        if device.type == 'monitor' then
+          device.callback_countdown = device.callback_countdown - 1
+          if device.callback_countdown == 0 then
+            local pos = tech_api.utils.misc.dehash_vector(hashed_pos)
+            local next_callback = device.callback(pos, device.dtime, network_info)
+            device.dtime = 0.0
+            device.callback_countdown = next_callback
           end
         end
       end

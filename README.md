@@ -48,9 +48,10 @@ reflect the code.
 + [x] Energy distribution algorithm
   + [x] User devices
   + [x] Provider devices
-  + [x] Storage devices (incomplete, missing possibility of letting them charge/discharge items)
-  + [ ] Monitor devices
+  + [x] Storage devices
+  + [x] Monitor devices
 + [ ] Clean up code
++ [ ] Generic performance optimizations
 + [ ] Network management optimizations (when adding/removing devices/transporters)
 + [ ] Nodestore automatic backup every *x* time
 + [ ] Better way of storing the nodestore (modstorage fails for a big one)
