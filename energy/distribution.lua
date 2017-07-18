@@ -137,9 +137,17 @@ function tech_api.energy.distribution_cycle(delta_time)
           device.callback_countdown = device.callback_countdown - 1
           if device.callback_countdown == 0 then
             local pos = tech_api.utils.misc.dehash_vector(hashed_pos)
-            local next_callback = device.callback(pos, device.dtime, nd_def.content, device.capacity, storage_rates[hashed_pos][device.def_name])
+            local storage_info = {
+              content = nd_def.content,
+              capacity = device.capacity,
+              current_rate = storage_rates[hashed_pos][device.def_name]
+            }
+            local content_change, next_callback = device.callback(pos, device.dtime, storage_info)
             device.dtime = 0.0
             device.callback_countdown = next_callback
+            -- change the content as the device asked (useful for batteries that
+            -- can charge/discharge items)
+            nd_def.content = nd_def.content + content_change
           end
         end
       end
