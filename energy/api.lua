@@ -157,7 +157,8 @@ function tech_api.energy.on_construct(pos)
   nodedata.is_device = is_device
 
   -- assign the data we generated to the node (referenced by position) in the
-  -- nodestore
+  -- nodestore. 'nodestore' is now a reference of the content in the nodestore,
+  -- so we can safely modify it without rewriting in the global table
   tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nodedata
 
   -- if this node is a transporter, search for connected networks and behave
@@ -177,9 +178,6 @@ function tech_api.energy.on_construct(pos)
       -- join them together
       tech_api.energy.rediscover_networks()
     end
-
-    -- update the nodestore data with the network id
-    tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)].network_id = nodedata.network_id
 
     -- if we manually configured the transporter node (not using rediscover_networks)
     -- then call discover_network to connect the devices around the node (if any).
