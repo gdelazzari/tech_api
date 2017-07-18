@@ -113,10 +113,15 @@ function tech_api.energy.on_construct(pos)
     facedir = node.param2
   }
 
+  -- figure out if this node has at least one transporter definition and/or one
+  -- device definition
+  local is_transporter = tech_api.energy.has_definition_for_group(node.name, 'transporter')
+  local is_device = tech_api.energy.has_definition_for_group(node.name, 'device')
+
   -- pre-calculate the valid direction vectors for each definition to speed
   -- up any further network discovery (only if this has at least one device
   -- definition)
-  if tech_api.energy.has_definition_for_group(node.name, 'device') == true then
+  if is_device then
     nodedata.definitions = {}
     for def_name, definition in pairs(tech_api.energy.definitions[node.name]) do
       if definition.group == 'device' then -- only if a device definition
@@ -143,17 +148,54 @@ function tech_api.energy.on_construct(pos)
   -- if this node has a transporter definition, also keep the transporter class
   -- in the nodestore so the network discovery can be performed faster without
   -- accessing multiple tables
-  local transporter_def = tech_api.energy.get_transporter_definition(node.name)
-  if transporter_def then
-    nodedata.class = transporter_def.class
+  if is_transporter then
+    nodedata.class = tech_api.energy.get_transporter_definition(node.name).class
   end
 
-  -- assign the data we generated to the node (referencing by position) in the
+  -- also add to the nodedata the flags is_transporter and is_device
+  nodedata.is_transporter = is_transporter
+  nodedata.is_device = is_device
+
+  -- assign the data we generated to the node (referenced by position) in the
   -- nodestore
   tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nodedata
 
-  -- rebuild the networks graphs
-  tech_api.energy.rediscover_networks()
+  -- if this node is a transporter, search for connected networks and behave
+  -- according to the number of them
+  if is_transporter then
+    local connected_networks = tech_api.energy.search_connected_networks(pos)
+    if #connected_networks == 0 then
+      -- we need to create a new network with this node as the entry point
+      local network_id = tech_api.energy.create_network(pos)
+      -- and then flag this node belongs to this new network
+      nodedata.network_id = network_id
+    elseif #connected_networks == 1 then
+      -- we can simply flag this node as belonging to the only connected network
+      nodedata.network_id = connected_networks[1]
+    elseif #connected_networks >= 2 then
+      -- we have multiple networks, we need to launch a network traversal to
+      -- join them together
+      tech_api.energy.rediscover_networks()
+    end
+
+    -- update the nodestore data with the network id
+    tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)].network_id = nodedata.network_id
+
+    -- if we manually configured the transporter node (not using rediscover_networks)
+    -- then call discover_network to connect the devices around the node (if any).
+    -- this is actually a bit of a trick, because discover_network was not meant
+    -- to do this, but it turns out it will work just fine
+    if #connected_networks <= 1 then
+      tech_api.energy.discover_network({}, pos, nodedata.network_id)
+    end
+  end
+
+  -- if this node is (also) a device, then try to connect it
+  if is_device then
+    tech_api.energy.connect_device(pos, nil)
+  end
+
+  tech_api.energy.log_networks()
 end
 
 --- Notify that a registered node has been removed.
@@ -189,7 +231,7 @@ function tech_api.energy.request_callback(pos, def_name)
 
   -- obtain the device definition network id
   local network_id = tech_api.utils.nodestore.data[hashed_pos].definitions[def_name].network_id
-  
+
   -- set the callback_countdown parameter in the network tree
   tech_api.energy.networks[network_id].devices[hashed_pos].callback_countdown = 1
 end

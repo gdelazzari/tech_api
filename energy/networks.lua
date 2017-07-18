@@ -285,6 +285,50 @@ function tech_api.energy.reset_discovery_flags()
   end
 end
 
+--- Get the connected network ids.
+-- This function, given a node position. searches for connected transporter
+-- nodes and returns the list of their network ids, without duplicates (in the
+-- case of two connected transporters with the same network id). This is useful
+-- when dynamically connecting a transporter node to figure out what network it
+-- will belong to (or if we need to merge two networks together).
+-- @function search_connected_networks
+-- @tparam table pos The position to search around
+-- @treturn array The list of connected network ids
+function tech_api.energy.search_connected_networks(pos)
+  local result = {}
+
+  -- nested function to search for a network id already in the result list or not
+  function id_in_result(id)
+    for i = 1, #result do
+      if result[i] == id then
+        return true
+      end
+    end
+    return false
+  end
+
+  -- get connected positions
+  local connected = tech_api.utils.misc.get_connected_positions(pos)
+
+  -- for each connected position
+  for i = 1, #connected do
+    -- search if there's a node there
+    local nd = tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(connected[i])]
+    if nd then
+      -- check if it's a transporter
+      if nd.is_transporter == true then
+        tech_api.utils.log.print('verbose', "found connected transporter")
+        -- and if it is, add this network id to the result list (if not already there)
+        if id_in_result(nd.network_id) == false then
+          table.insert(result, nd.network_id)
+        end
+      end
+    end
+  end
+
+  return result
+end
+
 -- debug (temporary function, will be removed)
 function tech_api.energy.log_networks()
   tech_api.utils.log.print('info', "------------------------------------------")
