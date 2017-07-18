@@ -52,7 +52,7 @@ reflect the code.
   + [x] Monitor devices
 + [ ] Clean up code
 + [ ] Generic performance optimizations
-+ [ ] Network management optimizations (when adding/removing devices/transporters)
++ [x] Network management optimizations (when adding/removing devices/transporters)
 + [ ] Nodestore automatic backup every *x* time
 + [ ] Better way of storing the nodestore (modstorage fails for a big one)
 

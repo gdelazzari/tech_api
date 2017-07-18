@@ -206,13 +206,28 @@ end
 --- Reset and rebuild the entire network graph.
 -- This function clears the current network graph and rediscovers all the
 -- networks in the world from scratch, using @{tech_api.energy.discover_network}.
+-- However if an array is given as a parameter the function will rediscover only
+-- the networks with the ids listed in the parameter.
 -- @function rediscover_networks
-function tech_api.energy.rediscover_networks()
-  -- reset the network graph, we'll start from scratch
-  tech_api.energy.reset_networks()
+-- @tparam array network_ids The network ids to rediscover. If nil (or not
+-- specified) then all the networks will be rediscovered.
+function tech_api.energy.rediscover_networks(network_ids)
+  if network_ids then
+    -- if we need to rediscover only some network(s), then only remove just them
+    -- from the tree
+    for _, id in pairs(network_ids) do
+      tech_api.utils.log.print('verbose', 'rediscovering network #' .. id)
+      tech_api.energy.networks[id] = nil
+    end
+  else
+    -- otherwise reset the network graph since we'll start from scratch
+    tech_api.utils.log.print('verbose', 'rediscovering all networks')
+    tech_api.energy.reset_networks()
+  end
 
-  -- remove any leftover flag (from previous traversals)
-  tech_api.energy.reset_discovery_flags()
+  -- remove any leftover flag (from previous traversals) passing the network_ids
+  -- parameter, so we eventually clear the flags only for the specified networks
+  tech_api.energy.reset_discovery_flags(network_ids)
 
   -- while there are still unvisited nodes
   while true do
@@ -248,9 +263,6 @@ function tech_api.energy.rediscover_networks()
       tech_api.energy.discover_network(discovery_stack, element.pos, element.network_id)
     end
   end
-
-  -- NOTE only for debug, will be removed
-  tech_api.energy.log_networks()
 end
 
 --- Reset the traversal algorithm flags in the nodestore.
@@ -264,12 +276,45 @@ end
 -- device definition. This allows for faster execution of the network discovery
 -- recursive function, because it doesn't need anymore to check the definitions
 -- table (which is slower) to figure out this aspect.
+-- If an array is given as a parameter, then the function will reset only the
+-- network ids that are included in that array/table. This allows to reset just
+-- a part of the network when a partial traversal is needed.
 -- @function reset_discovery_flags
-function tech_api.energy.reset_discovery_flags()
+-- @tparam array network_ids The network ids to reset. If nil (or not specified)
+-- then all the nodes will be reset.
+function tech_api.energy.reset_discovery_flags(network_ids)
+  -- prepare an hot-encoded table with the ids for faster execution (accounting
+  -- for the fact that the 'network_ids' parameter may be nil)
+  local hot_encoded_ids = {}
+  if network_ids then
+    -- this first step is probably not necessary, but let's keep things clean
+    for id, _ in pairs(tech_api.energy.networks) do
+      hot_encoded_ids[id] = false
+    end
+    for _, id in pairs(network_ids) do
+      tech_api.utils.log.print('verbose', 'resetting flags for network #' .. id)
+      hot_encoded_ids[id] = true
+    end
+  end
+
+  -- nested function to check if we need to reset the flags for this id or not
+  function shall_reset(id)
+    if network_ids then
+      if hot_encoded_ids[id] then
+        return true
+      end
+    else
+      return true
+    end
+  end
+
+  -- loop through all the nodes
   for pos_hash, content in pairs(tech_api.utils.nodestore.data) do
     if tech_api.energy.has_definition_for_group(tech_api.utils.nodestore.data[pos_hash].node_name, 'transporter') == true then
       tech_api.utils.nodestore.data[pos_hash].is_transporter = true
-      tech_api.utils.nodestore.data[pos_hash].network_id = -1
+      if shall_reset(tech_api.utils.nodestore.data[pos_hash].network_id) == true then
+        tech_api.utils.nodestore.data[pos_hash].network_id = -1
+      end
     else
       tech_api.utils.nodestore.data[pos_hash].is_transporter = false
     end
@@ -277,7 +322,9 @@ function tech_api.energy.reset_discovery_flags()
     if tech_api.energy.has_definition_for_group(tech_api.utils.nodestore.data[pos_hash].node_name, 'device') == true then
       tech_api.utils.nodestore.data[pos_hash].is_device = true
       for def_name, _ in pairs(tech_api.utils.nodestore.data[pos_hash].definitions) do
-        tech_api.utils.nodestore.data[pos_hash].definitions[def_name].network_id = -1
+        if shall_reset(tech_api.utils.nodestore.data[pos_hash].definitions[def_name].network_id) == true then
+          tech_api.utils.nodestore.data[pos_hash].definitions[def_name].network_id = -1
+        end
       end
     else
       tech_api.utils.nodestore.data[pos_hash].is_device = false
@@ -333,6 +380,16 @@ function tech_api.energy.search_connected_networks(pos, duplicates)
   return result
 end
 
+--- Get a list of connected devices..
+-- This function, given a node position. searches for connected device
+-- nodes and returns a list that contains, for each device (element) two fields:
+-- 'pos' which is the position of the device and 'def_name' which is the
+-- definition name. Only devices definitions that are connected to the specified
+-- network id are returned in the list while the others are ignored.
+-- @function search_connected_devices_definitions
+-- @tparam table pos The position to search around
+-- @tparam number network_id The network id to filter the definitions with
+-- @treturn array The list of connected devices in the format specified above
 function tech_api.energy.search_connected_devices_definitions(pos, network_id)
   -- place the resulting list here
   local result = {}
@@ -364,7 +421,7 @@ function tech_api.energy.search_connected_devices_definitions(pos, network_id)
   return result
 end
 
--- debug (temporary function, will be removed)
+-- NOTE only for debug (temporary function, will be removed)
 function tech_api.energy.log_networks()
   tech_api.utils.log.print('info', "------------------------------------------")
   for id, network in pairs(tech_api.energy.networks) do

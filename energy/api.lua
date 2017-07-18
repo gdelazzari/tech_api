@@ -176,7 +176,10 @@ function tech_api.energy.on_construct(pos)
     elseif #connected_networks >= 2 then
       -- we have multiple networks, we need to launch a network traversal to
       -- join them together
-      tech_api.energy.rediscover_networks()
+      -- let's pass the network ids we found to the function, so it traverses
+      -- just the two networks (instead of all of them)
+      nodedata.network_id = -1 -- but first reset the network_id in the nodestore
+      tech_api.energy.rediscover_networks(connected_networks)
     end
 
     -- if we manually configured the transporter node (not using rediscover_networks)
@@ -253,8 +256,9 @@ function tech_api.energy.on_destruct(pos)
       -- the node from the nodestore so the traversal algorithm knows we're no
       -- more here
       tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nil
-      -- then launch the traversal
-      tech_api.energy.rediscover_networks()
+
+      -- then launch the traversal only on the affected network id
+      tech_api.energy.rediscover_networks({network_id})
     end
 
     -- finally process our 'to_unlink' list and remove all the devices definitions
