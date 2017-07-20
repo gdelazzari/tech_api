@@ -62,11 +62,7 @@ end
 --  -- in yourcable.lua
 --
 --  tech_api.energy.register_transporter("yourmod:yourcable", {
---    class = 'default',
---    callback = function(...)
---      -- the callback that fires whenever the transporter changes its connected
---      -- sides, useful to update the node visuals
---    end
+--    class = 'default'
 --  })
 function tech_api.energy.register_transporter(node_name, config)
   -- fall back to default class if not specified
