@@ -26,7 +26,7 @@ function tech_api.energy.distribution_cycle(delta_time)
     tech_api.energy.timer = tech_api.energy.timer - tech_api.energy.time_unit
 
     -- for each network
-    for id, network in ipairs(tech_api.energy.networks) do
+    for id, network in pairs(tech_api.energy.networks) do
       -- prepare a table to keep the current rates for the storage devices (this
       -- is being done just to provide the storage devices a value that
       -- represents their current I/O rate - usually for display purposes).
