@@ -210,7 +210,7 @@ function tech_api.energy.distribution_cycle(delta_time)
       -- final checks
       if available < 0 then
         -- this should NEVER happen
-        tech_api.utils.log.print('warning', "network #" .. id .. " gained " + (-available) .. " for free")
+        tech_api.utils.log.print('warning', "network #" .. id .. " gained " .. (-available) .. " for free")
       end
     end
   end
