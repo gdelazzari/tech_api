@@ -176,6 +176,14 @@ function tech_api.energy.discover_network(stack, pos, current_network_id)
   local pos_hash = tech_api.utils.misc.hash_vector(pos)
   tech_api.utils.nodestore.data[pos_hash].network_id = network_id
 
+  -- if this transporter node is also a device, add it to the network we're
+  -- currently discovering
+  if tech_api.utils.nodestore.data[pos_hash].is_device == true then
+    -- this is (also) a device, connect it to the network if possible (the
+    -- function will perform all the needed checks)
+    tech_api.energy.connect_device(pos, pos)
+  end
+
   -- declare a local variable with our class id for faster access
   local own_class = tech_api.utils.nodestore.data[pos_hash].class
 
@@ -201,11 +209,6 @@ function tech_api.energy.discover_network(stack, pos, current_network_id)
             table.insert(stack, {pos = search_pos, network_id = network_id})
           end
         end
-      end
-      if search_pos_nodestore.is_device == true then
-        -- this is (also) a device, connect it to the network if possible (this
-        -- will do all the necessary checks)
-        tech_api.energy.connect_device(search_pos, pos)
       end
     end
   end
