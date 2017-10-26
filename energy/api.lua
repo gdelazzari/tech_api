@@ -234,7 +234,7 @@ function tech_api.energy.on_destruct(pos)
     -- get the number of connected transporters
     local connected_n = #tech_api.energy.search_connected_networks(pos, true)
 
-    -- the behave differently based on the number of connected transporters
+    -- then behave differently based on the number of connected transporters
     if connected_n == 0 then
       -- if no other connected transporters are found (thus this is the only
       -- transporter node left in the network) then unlink all the devices in
@@ -263,12 +263,19 @@ function tech_api.energy.on_destruct(pos)
     for _, device in pairs(to_unlink) do
       -- get the hashed position
       local hashed_pos = tech_api.utils.misc.hash_vector(device.pos)
-      -- if the network id still exists, remove the device from the network tree
-      if tech_api.energy.networks[network_id] then
-        tech_api.energy.networks[network_id].devices[hashed_pos] = nil
+      -- get the nodestore object for the device we're trying to unlink
+      local nd = tech_api.utils.nodestore.data[hashed_pos]
+      -- if this device is also a transporter, we are not going to remove it,
+      -- since it can't be disconnected from "itself"
+      -- if it's not a transporter, then we do our job
+      if nd.is_transporter == false then
+        -- if the network id still exists, remove the device from the network tree
+        if tech_api.energy.networks[network_id] then
+          tech_api.energy.networks[network_id].devices[hashed_pos] = nil
+        end
+        -- update the nodestore and flag the devices with the network_id "-1"
+        nd.definitions[device.def_name].network_id = -1
       end
-      -- update the nodestore and flag the devices with the network_id "-1"
-      tech_api.utils.nodestore.data[hashed_pos].definitions[device.def_name].network_id = -1
     end
   end
 
