@@ -204,10 +204,20 @@ function tech_api.energy.discover_network(stack, pos, current_network_id)
       if search_pos_nodestore.is_transporter == true then
         -- this is a (also) transporter, add to the stack if still not visited
         -- and of the same class
+        -- if the node is also a device, the next "recursive" call of this
+        -- function will handle that
         if search_pos_nodestore.network_id == -1 then
           if search_pos_nodestore.class == own_class then
             table.insert(stack, {pos = search_pos, network_id = network_id})
           end
+        end
+      else
+        -- if the node is not a transporter but is a device, try to connect it
+        -- now
+        if search_pos_nodestore.is_device == true then
+          -- this is (also) a device, connect it to the network if possible (the
+          -- function will perform all the needed checks)
+          tech_api.energy.connect_device(search_pos, pos)
         end
       end
     end
