@@ -25,6 +25,11 @@ The API methods and working principles, however, shouldn't change in the near
 future, so you may already start developing something with it. The main things
 left to do are just to ensure better stability and reliability.
 
+## Demo/example mod
+You can check out the [tech_api_demo](https://github.com/gdelazzari/tech_api_demo)
+mod to play around with the API and see how to actually implement something.
+This may be your best way to learn how to use it until a tutorial is ready.
+
 ## Current state (TODO list)
 + [x] API skeleton and basic structure
 + [x] Documentation setup (LDoc)
