@@ -203,8 +203,22 @@ end
 -- @function on_destruct(pos)
 -- @tparam table pos The position of the node
 function tech_api.energy.on_destruct(pos)
-  -- fetch some data about the node that was removed
+  -- get the nodestore object for the node that was removed
   local nd_def = tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)]
+
+  -- check if we actually got something from the nodestore
+  if not nd_def then
+    -- if we didn't, we're may be in trouble:
+    -- the nodestore is probably getting out of sync
+    tech_api.utils.log.print('info', "A node was removed from the world but was not in the nodestore.")
+    tech_api.utils.nodestore.on_discrepancy_detected()
+    
+    -- there's nothing left to do here, since we can't remove something that
+    -- doesn't exist
+    return
+  end
+
+  -- fetch some data about the node that was removed
   local is_transporter = tech_api.energy.has_definition_for_group(nd_def.node_name, 'transporter')
   local is_device = tech_api.energy.has_definition_for_group(nd_def.node_name, 'device')
 

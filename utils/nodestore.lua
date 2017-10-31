@@ -60,3 +60,15 @@ function tech_api.utils.nodestore.save()
 	-- Success
   return true
 end
+
+--- This function handles a discrepancy detected in the nodestore.
+-- The function must be called every time something in the nodestore doesn't
+-- match what we expected with respect to the real Minetest world.
+-- Currently it simply prints a message to warn the user by telling that manual
+-- intervention is probably required, but it will hopefully do more complex
+-- stuff in the future to partially fix the problem
+-- @function on_discrepancy_detected
+function tech_api.utils.nodestore.on_discrepancy_detected()
+	tech_api.utils.log.print('error', "The nodestore may be getting out of sync with respect to the real Minetest world.")
+	tech_api.utils.log.print('error', "Please fix the nodestore as soon as possible to prevent bad behaviors.")
+end
