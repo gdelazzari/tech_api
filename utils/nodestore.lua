@@ -7,14 +7,8 @@
 --
 -- @module tech_api.utils.nodestore
 
-binser = {}
-
-flatdb = dofile(tech_api.modpath .. "/FlatDB/flatdb.lua")
-db = flatdb(minetest.get_worldpath())
-
-if not db.page then
-	db.page = {}
-end
+-- Libraries/includes
+FlatDB = dofile(tech_api.modpath .. "/libs/flatdb.lua")
 
 -- Module table
 tech_api.utils.nodestore = {}
@@ -24,31 +18,45 @@ tech_api.utils.nodestore = {}
 -- (using @{tech_api.utils.misc.hash_vector}). Access to this table happens
 -- directly by referencing it from other modules of the package
 -- @table data
--- tech_api.utils.nodestore.data = {}
+tech_api.utils.nodestore.data = {}
 
---- This function loads the table from the tech_api ModStorage object.
--- The table is loaded into the global table @{tech_api.utils.nodestore.data} by
--- deserializing the string saved in the ModStorage
+--- This function loads the nodestore data with the FlatDB library.
+-- The data is loaded into the global table @{tech_api.utils.nodestore.data}
 -- @function load
 -- @treturn boolean Whether the operation was successful or not
 function tech_api.utils.nodestore.load()
-    print("loading nodestore")
-    tech_api.utils.nodestore.data = db.page
-    if tech_api.utils.nodestore.data then
-        print("loaded tech_api.utils.nodestore.data")
-      return true
-    else
-      tech_api.utils.nodestore.data = {}
-      return false
-    end
+	tech_api.utils.log.print('verbose', "Loading nodestore DB")
+
+	-- Open a FlatDB object on the user's world root directory
+	tech_api.utils.nodestore.db = FlatDB(minetest.get_worldpath())
+
+	-- If there's not a "nodes" page in the DB, create an empty one
+	if not tech_api.utils.nodestore.db['nodes'] then
+		tech_api.utils.log.print('verbose', "No existing DB page found, initializing a new one")
+		tech_api.utils.nodestore.db['nodes'] = {}
+	end
+
+	-- Bind the page object to tech_api.utils.nodestore.data
+	tech_api.utils.nodestore.data = tech_api.utils.nodestore.db['nodes']
+
+	-- Success
+	return true
 end
 
---- This function saves the table to the tech_api ModStorage object.
--- The global table @{tech_api.utils.nodestore.data} is serialized and saved
--- as a string in the ModStorage
+--- This function saves the nodestore data with the FlatDB library.
+-- The global table @{tech_api.utils.nodestore.data} contains the data that will
+-- be saved
 -- @function save
 -- @treturn boolean Whether the operation was successful or not
 function tech_api.utils.nodestore.save()
-  db:save()
+	tech_api.utils.log.print('verbose', "Saving nodestore DB")
+
+	-- Ensure we're writing the right data
+	tech_api.utils.nodestore.db['nodes'] = tech_api.utils.nodestore.data
+
+	-- Save data to disk through FlatDB
+  tech_api.utils.nodestore.db:save()
+
+	-- Success
   return true
 end

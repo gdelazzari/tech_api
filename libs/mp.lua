@@ -1,6 +1,11 @@
---
--- lua-MessagePack : <http://fperrad.github.io/lua-MessagePack/>
---
+--[[
+lua-MessagePack from https://github.com/fperrad/lua-MessagePack
+by @fperrad on GitHub
+
+Copyright (c) 2012-2017 Francois Perrad
+
+This library is licensed under the terms of the MIT/X11 license, like Lua itself.
+]]--
 
 local r, jit = pcall(require, 'jit')
 if not r then
