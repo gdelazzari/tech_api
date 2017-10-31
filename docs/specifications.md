@@ -1,6 +1,12 @@
-**tech_api** *energy subsystem* specifications (WIP)
+**tech_api** *energy subsystem* specifications (Out of date)
 ----------------------------------------------------
 
+## Warning
+**The document is OUT OF DATE**
+
+**You may read it to have some ideas on what's going on, but it probably doesn't reflect the current code. It was written in the very early development phase to collect ideas and better understand what the API should have looked like. Documentation through LDoc is available and will always reflect the current code (refer to the README.md for more info) and, also, some tutorial are planned.**
+
+## Introduction
 This document defines everything about the API. It will be used as a reference
 for the implementation/coding phase, but will also stay here as an in-depth
 documentation of the system working principles.
