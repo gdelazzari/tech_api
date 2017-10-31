@@ -23,6 +23,10 @@ end)
 -- Load the nodestore on server start
 tech_api.utils.nodestore.load()
 
+-- for k, v in pairs(tech_api.utils.nodestore.data) do
+--   minetest.chat_send_all(v)
+-- end
+
 -- Register globalstep handler for the distribution algorithm and to rebuild
 -- networks on server start
 local network_rebuilt_at_start = false

@@ -7,6 +7,15 @@
 --
 -- @module tech_api.utils.nodestore
 
+binser = {}
+
+flatdb = dofile(tech_api.modpath .. "/FlatDB/flatdb.lua")
+db = flatdb(minetest.get_worldpath())
+
+if not db.page then
+	db.page = {}
+end
+
 -- Module table
 tech_api.utils.nodestore = {}
 
@@ -15,7 +24,7 @@ tech_api.utils.nodestore = {}
 -- (using @{tech_api.utils.misc.hash_vector}). Access to this table happens
 -- directly by referencing it from other modules of the package
 -- @table data
-tech_api.utils.nodestore.data = {}
+-- tech_api.utils.nodestore.data = {}
 
 --- This function loads the table from the tech_api ModStorage object.
 -- The table is loaded into the global table @{tech_api.utils.nodestore.data} by
@@ -23,18 +32,15 @@ tech_api.utils.nodestore.data = {}
 -- @function load
 -- @treturn boolean Whether the operation was successful or not
 function tech_api.utils.nodestore.load()
-  local nodestore_string = tech_api.modstorage:get_string('nodestore')
-  if nodestore_string then
-    tech_api.utils.nodestore.data = minetest.deserialize(nodestore_string)
+    print("loading nodestore")
+    tech_api.utils.nodestore.data = db.page
     if tech_api.utils.nodestore.data then
+        print("loaded tech_api.utils.nodestore.data")
       return true
     else
       tech_api.utils.nodestore.data = {}
       return false
     end
-  else
-    return false
-  end
 end
 
 --- This function saves the table to the tech_api ModStorage object.
@@ -43,6 +49,6 @@ end
 -- @function save
 -- @treturn boolean Whether the operation was successful or not
 function tech_api.utils.nodestore.save()
-  tech_api.modstorage:set_string('nodestore', minetest.serialize(tech_api.utils.nodestore.data))
+  db:save()
   return true
 end
