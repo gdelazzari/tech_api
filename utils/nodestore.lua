@@ -20,6 +20,13 @@ tech_api.utils.nodestore = {}
 -- @table data
 tech_api.utils.nodestore.data = {}
 
+--- Nodestore FlatDB path
+-- This variable stores the path to the tech_api nodestore FlatDB directory
+tech_api.utils.nodestore.db_path = minetest.get_worldpath() .. "/tech_api"
+
+-- Ensure the DB directory exists
+minetest.mkdir(tech_api.utils.nodestore.db_path)
+
 --- This function loads the nodestore data with the FlatDB library.
 -- The data is loaded into the global table @{tech_api.utils.nodestore.data}
 -- @function load
@@ -27,8 +34,8 @@ tech_api.utils.nodestore.data = {}
 function tech_api.utils.nodestore.load()
 	tech_api.utils.log.print('verbose', "Loading nodestore DB")
 
-	-- Open a FlatDB object on the user's world root directory
-	tech_api.utils.nodestore.db = FlatDB(minetest.get_worldpath())
+	-- Create the FlatDB object
+	tech_api.utils.nodestore.db = FlatDB(tech_api.utils.nodestore.db_path)
 
 	-- If there's not a "nodes" page in the DB, create an empty one
 	if not tech_api.utils.nodestore.db['nodes'] then
