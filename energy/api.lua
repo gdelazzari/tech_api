@@ -192,6 +192,10 @@ function tech_api.energy.on_construct(pos)
     tech_api.energy.connect_device(pos, nil)
   end
 
+  -- after we successfully updated the network graph and the nodestore, dump the
+  -- nodestore to disk immediately to prevent it getting out of sync
+  tech_api.utils.nodestore.save()
+
   tech_api.energy.log_networks()
 end
 
@@ -212,7 +216,7 @@ function tech_api.energy.on_destruct(pos)
     -- the nodestore is probably getting out of sync
     tech_api.utils.log.print('info', "A node was removed from the world but was not in the nodestore.")
     tech_api.utils.nodestore.on_discrepancy_detected()
-    
+
     -- there's nothing left to do here, since we can't remove something that
     -- doesn't exist
     return
@@ -296,6 +300,10 @@ function tech_api.energy.on_destruct(pos)
   -- ensure this node is no more in the nodestore (just one of the conditions
   -- above will remove it, so let's fix that here)
   tech_api.utils.nodestore.data[tech_api.utils.misc.hash_vector(pos)] = nil
+
+  -- after we successfully updated the network graph and the nodestore, dump the
+  -- nodestore to disk immediately to prevent it getting out of sync
+  tech_api.utils.nodestore.save()
 
   tech_api.energy.log_networks()
 end
